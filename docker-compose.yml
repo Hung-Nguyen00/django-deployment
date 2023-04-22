@@ -1,0 +1,48 @@
+# version of docker syntx
+version: '3.9'
+
+services:
+  app:
+    build:
+# the path of Docker file
+      context: .
+    command: >
+      sh -c "python manage.py wait_for_db &&
+             python manage.py migrate &&
+             python manage.py runserver 0.0.0.0:8000"
+    ports:
+      - 8000:8000
+    volumes:
+      - ./app:/app
+      - ./data/web:/vol/web
+    environment:
+      - SECRET_KEY=secrectkeylocal
+      - DEBUG=1
+      - DB_HOST=db
+      - DB_NAME=devdb
+      - DB_USER=devuser
+      - DB_PASS=devpassword
+    depends_on:
+      - db
+    links:
+      - db:db
+    networks:
+      - specific-network-name
+
+  db:
+    image: postgres:13-alpine
+    container_name: db
+    environment:
+      - POSTGRES_DB=devdb
+      - POSTGRES_USER=devuser
+      - POSTGRES_PASSWORD=devpassword
+    networks:
+      - specific-network-name
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U devuser"]
+      interval: 5s
+      retries: 5
+
+networks:
+  specific-network-name:
+    name: specific-network-name
